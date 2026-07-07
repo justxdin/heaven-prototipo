@@ -100,6 +100,14 @@
     display:flex;flex-direction:column;
     min-height:780px;
   }
+  /* En un celular real no queremos simular un teléfono: ocupa toda la pantalla, sin marco */
+  @media (max-width:600px){
+    .stage{padding:0;min-height:100dvh;align-items:stretch;}
+    .phone{
+      width:100%;border-radius:0;border:none;box-shadow:none;
+      min-height:100dvh;
+    }
+  }
   .op-topbar{
     display:flex;align-items:center;justify-content:space-between;
     padding:16px 18px 12px;
@@ -264,6 +272,10 @@
   .bar-track{flex:1;height:8px;background:var(--surface-alt);border-radius:5px;overflow:hidden;}
   .bar-fill{height:100%;background:var(--amber);border-radius:5px;}
   .bar-row .amt{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);width:90px;text-align:right;flex-shrink:0;}
+  .seg{display:flex;gap:4px;}
+  .seg-btn{padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:7px;font-size:11.5px;font-weight:600;color:var(--ink-soft);}
+  .seg-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .table-wrap{overflow-x:auto;}
 
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{text-align:left;padding:10px 16px;background:var(--surface-alt);color:var(--ink-soft);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;}
@@ -381,6 +393,8 @@ const S = {
   addCenterOpen:false,
   addProcOpen:false,
   tarifaCenterId:'c1',
+  resumenCenterId:'all',
+  resumenGroup:'dia',
 };
 
 function money(n){ return '$' + n.toLocaleString('es-CL'); }
@@ -588,36 +602,91 @@ function navBtn(key,label){
   return `<button class="${S.adminScreen===key?'active':''}" onclick="App.setAdminScreen('${key}')">${label}</button>`;
 }
 
+function periodKey(dateStr, mode){
+  if(mode==='dia') return dateStr;
+  if(mode==='mes') return dateStr.slice(0,7);
+  return dateStr.slice(0,4);
+}
+function periodLabel(key, mode){
+  if(mode==='dia'){ const d=new Date(key+'T00:00:00'); return capitalize(d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'})); }
+  if(mode==='mes'){ const d=new Date(key+'-01T00:00:00'); return capitalize(d.toLocaleDateString('es-CL',{month:'long',year:'numeric'})); }
+  return key;
+}
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function groupRegs(regs, mode){
+  const map = {};
+  regs.forEach(r=>{
+    const k = periodKey(r.date, mode);
+    if(!map[k]) map[k] = {key:k, count:0, total:0};
+    map[k].count++; map[k].total += r.total;
+  });
+  return Object.values(map).sort((a,b)=> b.key.localeCompare(a.key));
+}
+function segBtn(mode,label){
+  return `<button class="seg-btn ${S.resumenGroup===mode?'active':''}" onclick="App.setResumenGroup('${mode}')">${label}</button>`;
+}
+
 function adminResumen(){
   const active = DATA.registrations.filter(r=>!r.deleted);
-  const totalFact = active.reduce((s,r)=>s+r.total,0);
+  const cid = S.resumenCenterId;
+  const filtered = cid==='all' ? active : active.filter(r=>r.centerId===cid);
+  const totalFact = filtered.reduce((s,r)=>s+r.total,0);
   const byCenter = DATA.centers.map(c=>({
-    name:c.name,
-    total: active.filter(r=>r.centerId===c.id).reduce((s,r)=>s+r.total,0)
+    id:c.id, name:c.name,
+    total: active.filter(r=>r.centerId===c.id).reduce((s,r)=>s+r.total,0),
   }));
   const maxTotal = Math.max(1, ...byCenter.map(b=>b.total));
-  const recent = [...active].reverse().slice(0,4);
+  const recent = [...filtered].reverse().slice(0,4);
+  const grouped = groupRegs(filtered, S.resumenGroup);
+  const maxGroup = Math.max(1, ...grouped.map(g=>g.total));
 
   return `
-  <div class="admin-head"><div><h1>Resumen</h1><p>Vista general de la actividad registrada.</p></div></div>
+  <div class="admin-head">
+    <div><h1>Resumen</h1><p>${cid==='all' ? 'Vista general de la actividad registrada.' : 'Actividad de ' + centerName(cid) + '.'}</p></div>
+  </div>
+
+  <div class="rate-select">
+    <select onchange="App.setResumenCenter(this.value)">
+      <option value="all" ${cid==='all'?'selected':''}>Todos los centros</option>
+      ${DATA.centers.map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${c.name}</option>`).join('')}
+    </select>
+  </div>
+
   <div class="cards-row">
-    <div class="stat-card"><div class="lbl">Registros activos</div><div class="val">${active.length}</div></div>
+    <div class="stat-card"><div class="lbl">Registros</div><div class="val">${filtered.length}</div></div>
     <div class="stat-card"><div class="lbl">Total facturado</div><div class="val">${money(totalFact)}</div></div>
-    <div class="stat-card"><div class="lbl">Centros activos</div><div class="val">${DATA.centers.filter(c=>c.active).length}</div></div>
+    ${cid==='all'
+      ? `<div class="stat-card"><div class="lbl">Centros activos</div><div class="val">${DATA.centers.filter(c=>c.active).length}</div></div>`
+      : `<div class="stat-card"><div class="lbl">Promedio por registro</div><div class="val">${money(filtered.length? Math.round(totalFact/filtered.length):0)}</div></div>`}
     <div class="stat-card"><div class="lbl">Procedimientos</div><div class="val">${DATA.procedures.length}</div></div>
   </div>
+
+  ${cid==='all' ? `
   <div class="panel">
-    <div class="panel-title">Facturado por centro</div>
+    <div class="panel-title">Facturado por centro — toca uno para ver su historial</div>
     ${byCenter.map(b=>`
-      <div class="bar-row">
-        <div class="name">${b.name}</div>
+      <button class="bar-row" style="width:100%;border:none;background:none;text-align:left;">
+        <div class="name" onclick="App.setResumenCenter('${b.id}')" style="cursor:pointer">${b.name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(b.total/maxTotal*100).toFixed(0)}%"></div></div>
         <div class="amt">${money(b.total)}</div>
-      </div>`).join('')}
-  </div>
+      </button>`).join('')}
+  </div>` : `
   <div class="panel">
-    <div class="panel-title">Últimos registros</div>
-    ${recent.map(r=>`
+    <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span>Historial de ${centerName(cid)}</span>
+      <div class="seg">${segBtn('dia','Día')}${segBtn('mes','Mes')}${segBtn('anio','Año')}</div>
+    </div>
+    ${grouped.length===0 ? `<div class="empty">Sin registros para este centro.</div>` : grouped.map(g=>`
+      <div class="bar-row">
+        <div class="name">${periodLabel(g.key,S.resumenGroup)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(g.total/maxGroup*100).toFixed(0)}%"></div></div>
+        <div class="amt">${money(g.total)} · ${g.count} reg.</div>
+      </div>`).join('')}
+  </div>`}
+
+  <div class="panel">
+    <div class="panel-title">Últimos registros${cid==='all'?'':' — '+centerName(cid)}</div>
+    ${recent.length===0 ? `<div class="empty">Sin registros.</div>` : recent.map(r=>`
       <div class="bar-row">
         <div class="name">${centerName(r.centerId)}</div>
         <div class="bar-track" style="visibility:hidden"></div>
@@ -639,7 +708,7 @@ function adminCentros(){
       <div class="f"><label>Dirección</label><input id="new-center-addr" placeholder="Comuna"/></div>
       <button class="icon-btn" onclick="App.addCenter()">Guardar</button>
     </div>` : ''}
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Nombre</th><th>Dirección</th><th>Activo</th></tr></thead>
       <tbody>
         ${DATA.centers.map(c=>`
@@ -649,7 +718,7 @@ function adminCentros(){
           <td><button class="switch ${c.active?'on':''}" onclick="App.toggleCenterActive('${c.id}')"><span class="knob"></span></button></td>
         </tr>`).join('')}
       </tbody>
-    </table>
+    </table></div>
   </div>`;
 }
 
@@ -666,7 +735,7 @@ function adminProcedimientos(){
       <div class="f chk"><input type="checkbox" id="new-proc-diff"/><label style="text-transform:none;font-size:13px">Diferencia adulto/niño</label></div>
       <button class="icon-btn" onclick="App.addProc()">Guardar</button>
     </div>` : ''}
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Procedimiento</th><th>Diferencia adulto/niño</th></tr></thead>
       <tbody>
         ${DATA.procedures.map(p=>`
@@ -675,7 +744,7 @@ function adminProcedimientos(){
           <td>${p.diff ? '<span class="badge adulto">Sí</span>' : '<span class="badge" style="background:var(--surface-alt);color:var(--ink-faint)">No</span>'}</td>
         </tr>`).join('')}
       </tbody>
-    </table>
+    </table></div>
   </div>`;
 }
 
@@ -689,7 +758,7 @@ function adminTarifas(){
     </select>
   </div>
   <div class="panel">
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Procedimiento</th><th>Adulto</th><th>Niño</th></tr></thead>
       <tbody>
         ${DATA.procedures.map(p=>{
@@ -706,7 +775,7 @@ function adminTarifas(){
           </tr>`;
         }).join('')}
       </tbody>
-    </table>
+    </table></div>
     <p class="hint">Los cambios rigen desde hoy. Los registros ya guardados conservan el valor que tenían al momento de crearse.</p>
   </div>`;
 }
@@ -716,7 +785,7 @@ function adminRegistros(){
   return `
   <div class="admin-head"><div><h1>Registros</h1><p>Todas las atenciones ingresadas, con edición y borrado auditado.</p></div></div>
   <div class="panel">
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Fecha</th><th>Centro</th><th>Paciente</th><th>Procedimientos</th><th>Total</th><th>Acciones</th></tr></thead>
       <tbody>
         ${regs.map(r=>`
@@ -732,7 +801,7 @@ function adminRegistros(){
           </td>
         </tr>`).join('')}
       </tbody>
-    </table>
+    </table></div>
   </div>`;
 }
 
@@ -846,6 +915,8 @@ const App = {
   },
 
   setTarifaCenter(id){ S.tarifaCenterId = id; render(); },
+  setResumenCenter(id){ S.resumenCenterId = id; render(); },
+  setResumenGroup(mode){ S.resumenGroup = mode; render(); },
   setRate(cid,pid,type,val){
     const n = parseInt(val,10)||0;
     DATA.rates[cid+'_'+pid+'_'+type] = n;
