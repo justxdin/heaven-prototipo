@@ -10,7 +10,7 @@ Este repo contiene un **prototipo visual interactivo** (`index.html`), un solo a
 
 **Settings → Pages → Deploy from branch → `main` → `/ (root)`**
 
-Queda disponible en `https://TU_USUARIO.github.io/heaven-prototipo/`
+Queda disponible en `https://justxdin.github.io/heaven-prototipo/`
 
 Los datos que se ven (centros, procedimientos, tarifas, registros) son de ejemplo y viven en memoria del navegador — al recargar la página vuelven a su estado inicial.
 
