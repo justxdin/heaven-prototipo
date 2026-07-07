@@ -340,9 +340,9 @@
 const DATA = {
   user:{name:'Dra. Valentina Rojas', initials:'VR'},
   centers:[
-    {id:'c1', name:'Clínica Dental Andes', address:'Providencia', active:true},
-    {id:'c2', name:'Hospital San Rafael', address:'Ñuñoa', active:true},
-    {id:'c3', name:'Clínica Bellavista', address:'Recoleta', active:true},
+    {id:'c1', name:'Clínica Dental Andes', active:true},
+    {id:'c2', name:'Hospital San Rafael', active:true},
+    {id:'c3', name:'Clínica Bellavista', active:true},
   ],
   procedures:[
     {id:'p1', name:'Limpieza dental', diff:true},
@@ -353,23 +353,23 @@ const DATA = {
     {id:'p6', name:'Blanqueamiento', diff:false},
   ],
   rates:{
-    c1_p1_adulto:25000, c1_p1_nino:18000,
-    c1_p2_adulto:40000, c1_p2_nino:30000,
-    c1_p3_adulto:35000, c1_p3_nino:28000,
-    c1_p4_unico:90000, c1_p5_unico:20000, c1_p6_unico:60000,
-    c2_p1_adulto:22000, c2_p1_nino:16000,
-    c2_p2_adulto:38000, c2_p2_nino:28000,
-    c2_p3_adulto:32000, c2_p3_nino:25000,
-    c2_p4_unico:85000, c2_p5_unico:18000, c2_p6_unico:55000,
-    c3_p1_adulto:27000, c3_p1_nino:19000,
-    c3_p2_adulto:42000, c3_p2_nino:32000,
-    c3_p3_adulto:36000, c3_p3_nino:29000,
-    c3_p4_unico:95000, c3_p5_unico:22000, c3_p6_unico:65000,
+    c1_p1_adulto:45, c1_p1_nino:30,
+    c1_p2_adulto:65, c1_p2_nino:40,
+    c1_p3_adulto:70, c1_p3_nino:45,
+    c1_p4_unico:220, c1_p5_unico:40, c1_p6_unico:180,
+    c2_p1_adulto:40, c2_p1_nino:28,
+    c2_p2_adulto:60, c2_p2_nino:38,
+    c2_p3_adulto:65, c2_p3_nino:42,
+    c2_p4_unico:200, c2_p5_unico:35, c2_p6_unico:160,
+    c3_p1_adulto:50, c3_p1_nino:32,
+    c3_p2_adulto:70, c3_p2_nino:45,
+    c3_p3_adulto:75, c3_p3_nino:48,
+    c3_p4_unico:250, c3_p5_unico:45, c3_p6_unico:200,
   },
   registrations:[
-    {id:'r1', centerId:'c1', type:'adulto', procIds:['p1','p3'], total:60000, date:'2026-07-03', deleted:false},
-    {id:'r2', centerId:'c2', type:'nino', procIds:['p2'], total:28000, date:'2026-07-05', deleted:false},
-    {id:'r3', centerId:'c3', type:'adulto', procIds:['p4'], total:95000, date:'2026-07-06', deleted:false},
+    {id:'r1', centerId:'c1', type:'adulto', procIds:['p1','p3'], total:115, date:'2026-07-03', deleted:false},
+    {id:'r2', centerId:'c2', type:'nino', procIds:['p2'], total:38, date:'2026-07-05', deleted:false},
+    {id:'r3', centerId:'c3', type:'adulto', procIds:['p4'], total:250, date:'2026-07-06', deleted:false},
   ],
   audit:[
     {ts:'2026-07-03 09:14', action:'creado', desc:'Registro r1 — Clínica Dental Andes'},
@@ -392,12 +392,19 @@ const S = {
   editReg:null,               // registration id being edited in admin
   addCenterOpen:false,
   addProcOpen:false,
+  editCenterId:null,
+  editProcId:null,
+  tarifaDraft:null,
+  tarifaDraftCenter:null,
+  tarifaDirty:false,
+  tarifaSaved:false,
   tarifaCenterId:'c1',
   resumenCenterId:'all',
   resumenGroup:'dia',
 };
 
-function money(n){ return '$' + n.toLocaleString('es-CL'); }
+function money(n){ return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n); }
+function nowTs(){ return new Date().toISOString().slice(0,16).replace('T',' '); }
 function centerName(id){ return DATA.centers.find(c=>c.id===id)?.name || '—'; }
 function procName(id){ return DATA.procedures.find(p=>p.id===id)?.name || '—'; }
 function fmtDate(d){
@@ -409,6 +416,19 @@ function rateFor(centerId, procId, type){
   const proc = DATA.procedures.find(p=>p.id===procId);
   const key = proc.diff ? `${centerId}_${procId}_${type}` : `${centerId}_${procId}_unico`;
   return DATA.rates[key] ?? 0;
+}
+
+function initTarifaDraft(cid){
+  const draft = {};
+  DATA.procedures.forEach(p=>{
+    if(p.diff){
+      draft[p.id+'_adulto'] = DATA.rates[cid+'_'+p.id+'_adulto'] ?? 0;
+      draft[p.id+'_nino'] = DATA.rates[cid+'_'+p.id+'_nino'] ?? 0;
+    } else {
+      draft[p.id+'_unico'] = DATA.rates[cid+'_'+p.id+'_unico'] ?? 0;
+    }
+  });
+  return draft;
 }
 
 function render(){ document.getElementById('root').innerHTML = layout(); }
@@ -705,17 +725,23 @@ function adminCentros(){
     ${S.addCenterOpen ? `
     <div class="inline-form">
       <div class="f"><label>Nombre</label><input id="new-center-name" placeholder="Ej: Clínica Los Robles"/></div>
-      <div class="f"><label>Dirección</label><input id="new-center-addr" placeholder="Comuna"/></div>
       <button class="icon-btn" onclick="App.addCenter()">Guardar</button>
     </div>` : ''}
     <div class="table-wrap"><table>
-      <thead><tr><th>Nombre</th><th>Dirección</th><th>Activo</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Activo</th><th>Acciones</th></tr></thead>
       <tbody>
         ${DATA.centers.map(c=>`
         <tr>
-          <td style="font-weight:600">${c.name}</td>
-          <td style="color:var(--ink-soft)">${c.address}</td>
+          ${S.editCenterId===c.id ? `
+          <td><input class="rate-input" style="width:100%;text-align:left" id="edit-center-name-${c.id}" value="${c.name}"/></td>
           <td><button class="switch ${c.active?'on':''}" onclick="App.toggleCenterActive('${c.id}')"><span class="knob"></span></button></td>
+          <td class="row-actions">
+            <button class="icon-btn" onclick="App.saveEditCenter('${c.id}')">Guardar</button>
+            <button class="icon-btn" onclick="App.cancelEditCenter()">Cancelar</button>
+          </td>` : `
+          <td style="font-weight:600">${c.name}</td>
+          <td><button class="switch ${c.active?'on':''}" onclick="App.toggleCenterActive('${c.id}')"><span class="knob"></span></button></td>
+          <td class="row-actions"><button class="icon-btn" onclick="App.openEditCenter('${c.id}')">Editar</button></td>`}
         </tr>`).join('')}
       </tbody>
     </table></div>
@@ -736,12 +762,20 @@ function adminProcedimientos(){
       <button class="icon-btn" onclick="App.addProc()">Guardar</button>
     </div>` : ''}
     <div class="table-wrap"><table>
-      <thead><tr><th>Procedimiento</th><th>Diferencia adulto/niño</th></tr></thead>
+      <thead><tr><th>Procedimiento</th><th>Diferencia adulto/niño</th><th>Acciones</th></tr></thead>
       <tbody>
         ${DATA.procedures.map(p=>`
         <tr>
+          ${S.editProcId===p.id ? `
+          <td><input class="rate-input" style="width:100%;text-align:left" id="edit-proc-name-${p.id}" value="${p.name}"/></td>
+          <td><label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-soft)"><input type="checkbox" id="edit-proc-diff-${p.id}" ${p.diff?'checked':''}/> Adulto/niño</label></td>
+          <td class="row-actions">
+            <button class="icon-btn" onclick="App.saveEditProc('${p.id}')">Guardar</button>
+            <button class="icon-btn" onclick="App.cancelEditProc()">Cancelar</button>
+          </td>` : `
           <td style="font-weight:600">${p.name}</td>
           <td>${p.diff ? '<span class="badge adulto">Sí</span>' : '<span class="badge" style="background:var(--surface-alt);color:var(--ink-faint)">No</span>'}</td>
+          <td class="row-actions"><button class="icon-btn" onclick="App.openEditProc('${p.id}')">Editar</button></td>`}
         </tr>`).join('')}
       </tbody>
     </table></div>
@@ -750,6 +784,12 @@ function adminProcedimientos(){
 
 function adminTarifas(){
   const cid = S.tarifaCenterId;
+  if(!S.tarifaDraft || S.tarifaDraftCenter !== cid){
+    S.tarifaDraft = initTarifaDraft(cid);
+    S.tarifaDraftCenter = cid;
+    S.tarifaDirty = false;
+  }
+  const draft = S.tarifaDraft;
   return `
   <div class="admin-head"><div><h1>Tarifas</h1><p>Valor de cada procedimiento por centro.</p></div></div>
   <div class="rate-select">
@@ -765,18 +805,24 @@ function adminTarifas(){
           if(p.diff){
             return `<tr>
               <td style="font-weight:600">${p.name}</td>
-              <td><input class="rate-input" value="${DATA.rates[cid+'_'+p.id+'_adulto']}" onchange="App.setRate('${cid}','${p.id}','adulto',this.value)"/></td>
-              <td><input class="rate-input" value="${DATA.rates[cid+'_'+p.id+'_nino']}" onchange="App.setRate('${cid}','${p.id}','nino',this.value)"/></td>
+              <td><input class="rate-input" value="${draft[p.id+'_adulto']}" onchange="App.setDraftRate('${p.id}','adulto',this.value)"/></td>
+              <td><input class="rate-input" value="${draft[p.id+'_nino']}" onchange="App.setDraftRate('${p.id}','nino',this.value)"/></td>
             </tr>`;
           }
           return `<tr>
             <td style="font-weight:600">${p.name}</td>
-            <td colspan="2"><input class="rate-input" style="width:100%;text-align:left" value="${DATA.rates[cid+'_'+p.id+'_unico']}" onchange="App.setRate('${cid}','${p.id}','unico',this.value)"/></td>
+            <td colspan="2"><input class="rate-input" style="width:100%;text-align:left" value="${draft[p.id+'_unico']}" onchange="App.setDraftRate('${p.id}','unico',this.value)"/></td>
           </tr>`;
         }).join('')}
       </tbody>
     </table></div>
-    <p class="hint">Los cambios rigen desde hoy. Los registros ya guardados conservan el valor que tenían al momento de crearse.</p>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid var(--border)">
+      <button class="btn-add" onclick="App.saveTarifas()" ${S.tarifaDirty?'':'disabled'} style="${S.tarifaDirty?'':'opacity:.45;cursor:default'}">Guardar cambios</button>
+      <span style="font-size:12.5px;color:${S.tarifaDirty?'var(--amber)':'var(--ink-faint)'}">
+        ${S.tarifaDirty ? 'Tienes cambios sin guardar' : (S.tarifaSaved ? 'Guardado ✓' : 'Sin cambios pendientes')}
+      </span>
+    </div>
+    <p class="hint">Al guardar, los cambios rigen desde hoy. Los registros ya guardados conservan el valor que tenían al momento de crearse.</p>
   </div>`;
 }
 
@@ -894,12 +940,26 @@ const App = {
   toggleAddCenter(){ S.addCenterOpen = !S.addCenterOpen; render(); },
   addCenter(){
     const name = document.getElementById('new-center-name').value.trim();
-    const addr = document.getElementById('new-center-addr').value.trim();
     if(!name) return;
     const id = 'c'+(DATA.centers.length+1);
-    DATA.centers.push({id, name, address:addr||'—', active:true});
+    DATA.centers.push({id, name, active:true});
+    DATA.procedures.forEach(p=>{
+      if(p.diff){ DATA.rates[id+'_'+p.id+'_adulto']=0; DATA.rates[id+'_'+p.id+'_nino']=0; }
+      else { DATA.rates[id+'_'+p.id+'_unico']=0; }
+    });
     S.addCenterOpen = false; render();
   },
+  openEditCenter(id){ S.editCenterId = id; render(); },
+  cancelEditCenter(){ S.editCenterId = null; render(); },
+  saveEditCenter(id){
+    const name = document.getElementById('edit-center-name-'+id).value.trim();
+    if(!name) return;
+    const c = DATA.centers.find(x=>x.id===id);
+    c.name = name;
+    DATA.audit.push({ts:nowTs(), action:'editado', desc:`Centro actualizado: ${name}`});
+    S.editCenterId = null; render();
+  },
+
   toggleAddProc(){ S.addProcOpen = !S.addProcOpen; render(); },
   addProc(){
     const name = document.getElementById('new-proc-name').value.trim();
@@ -913,14 +973,54 @@ const App = {
     });
     S.addProcOpen = false; render();
   },
+  openEditProc(id){ S.editProcId = id; render(); },
+  cancelEditProc(){ S.editProcId = null; render(); },
+  saveEditProc(id){
+    const name = document.getElementById('edit-proc-name-'+id).value.trim();
+    const newDiff = document.getElementById('edit-proc-diff-'+id).checked;
+    if(!name) return;
+    const p = DATA.procedures.find(x=>x.id===id);
+    p.name = name;
+    if(newDiff !== p.diff){
+      DATA.centers.forEach(c=>{
+        if(newDiff){
+          const base = DATA.rates[c.id+'_'+id+'_unico'] ?? 0;
+          DATA.rates[c.id+'_'+id+'_adulto'] = base;
+          DATA.rates[c.id+'_'+id+'_nino'] = base;
+          delete DATA.rates[c.id+'_'+id+'_unico'];
+        } else {
+          const base = DATA.rates[c.id+'_'+id+'_adulto'] ?? 0;
+          DATA.rates[c.id+'_'+id+'_unico'] = base;
+          delete DATA.rates[c.id+'_'+id+'_adulto'];
+          delete DATA.rates[c.id+'_'+id+'_nino'];
+        }
+      });
+      p.diff = newDiff;
+    }
+    DATA.audit.push({ts:nowTs(), action:'editado', desc:`Procedimiento actualizado: ${name}`});
+    S.editProcId = null;
+    S.tarifaDraft = null;
+    render();
+  },
 
-  setTarifaCenter(id){ S.tarifaCenterId = id; render(); },
+  setTarifaCenter(id){ S.tarifaCenterId = id; S.tarifaDraft = null; render(); },
   setResumenCenter(id){ S.resumenCenterId = id; render(); },
   setResumenGroup(mode){ S.resumenGroup = mode; render(); },
-  setRate(cid,pid,type,val){
+  setDraftRate(pid,type,val){
     const n = parseInt(val,10)||0;
-    DATA.rates[cid+'_'+pid+'_'+type] = n;
-    DATA.audit.push({ts:new Date().toISOString().slice(0,16).replace('T',' '), action:'editado', desc:`Tarifa ${procName(pid)} en ${centerName(cid)} actualizada a ${money(n)}`});
+    S.tarifaDraft[pid+'_'+type] = n;
+    S.tarifaDirty = true;
+    S.tarifaSaved = false;
+    render();
+  },
+  saveTarifas(){
+    const cid = S.tarifaCenterId;
+    Object.keys(S.tarifaDraft).forEach(key=>{
+      DATA.rates[cid+'_'+key] = S.tarifaDraft[key];
+    });
+    DATA.audit.push({ts:nowTs(), action:'editado', desc:`Tarifas de ${centerName(cid)} actualizadas`});
+    S.tarifaDirty = false;
+    S.tarifaSaved = true;
     render();
   },
 
