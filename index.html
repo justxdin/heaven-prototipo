@@ -243,10 +243,19 @@
   }
   .admin-nav button.active{background:var(--ink);color:#fff;font-weight:600;}
   .admin-nav button:not(.active):hover{background:var(--surface-alt);color:var(--ink);}
-  .admin-side .back{
+  .side-footer{
     border-top:1px solid var(--border);padding-top:12px;margin-top:8px;
-    font-size:12.5px;color:var(--ink-faint);background:none;border-left:none;border-right:none;border-bottom:none;
-    text-align:left;padding-left:12px;font-weight:600;
+    display:flex;align-items:center;gap:8px;
+  }
+  .gear-btn{
+    width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1px solid var(--border);
+    background:var(--surface);font-size:15px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-soft);
+  }
+  .gear-btn:hover, .gear-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .admin-side .back{
+    font-size:12.5px;color:var(--ink-faint);background:none;border:none;
+    text-align:left;padding:0 4px;font-weight:600;flex:1;
   }
   .admin-side .back:hover{color:var(--ink);}
 
@@ -283,6 +292,10 @@
   .c-row .c-k{color:var(--ink-soft);flex-shrink:0;}
   .c-row .c-v{text-align:right;}
   .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:4px;}
+  .var-list{display:flex;flex-direction:column;gap:8px;}
+  .var-row{display:flex;align-items:center;gap:8px;}
+  .var-row input[type=text], .var-row input:not(.rate-input){flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;}
+  .var-row .icon-btn.danger{color:var(--danger);flex-shrink:0;}
   .form-grid .f input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;}
 
   table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -351,13 +364,13 @@ const DATA = {
   centers:[
     {id:'c1', name:'Clínica Dental Andes', active:true,
       billing:{rep:'Dra. Valentina Rojas', street:'Calle Mayor 12', city:'Madrid', cp:'28013', cif:'B12345678'},
-      profitType:'general', profitGeneral:35, profitAdulto:0, profitNino:0},
+      variables:[{id:'v1', name:'Adulto', pct:35},{id:'v2', name:'Niño', pct:20}]},
     {id:'c2', name:'Hospital San Rafael', active:true,
       billing:{rep:'Hospital San Rafael S.L.', street:'Av. de la Constitución 45', city:'Sevilla', cp:'41001', cif:'B87654321'},
-      profitType:'general', profitGeneral:30, profitAdulto:0, profitNino:0},
+      variables:[{id:'v1', name:'General', pct:30}]},
     {id:'c3', name:'Clínica Bellavista', active:true,
       billing:{rep:'Clínica Bellavista S.L.', street:'Passeig de Gràcia 88', city:'Barcelona', cp:'08008', cif:'B11223344'},
-      profitType:'tipo', profitGeneral:0, profitAdulto:40, profitNino:25},
+      variables:[{id:'v1', name:'Adulto', pct:40},{id:'v2', name:'Niño', pct:25},{id:'v3', name:'Anciano', pct:30}]},
   ],
   procedures:[
     {id:'p1', name:'Limpieza dental', diff:true},
@@ -368,23 +381,23 @@ const DATA = {
     {id:'p6', name:'Blanqueamiento', diff:false},
   ],
   rates:{
-    c1_p1_adulto:45, c1_p1_nino:30,
-    c1_p2_adulto:65, c1_p2_nino:40,
-    c1_p3_adulto:70, c1_p3_nino:45,
+    c1_p1_v1:45, c1_p1_v2:30,
+    c1_p2_v1:65, c1_p2_v2:40,
+    c1_p3_v1:70, c1_p3_v2:45,
     c1_p4_unico:220, c1_p5_unico:40, c1_p6_unico:180,
-    c2_p1_adulto:40, c2_p1_nino:28,
-    c2_p2_adulto:60, c2_p2_nino:38,
-    c2_p3_adulto:65, c2_p3_nino:42,
+    c2_p1_v1:38,
+    c2_p2_v1:55,
+    c2_p3_v1:60,
     c2_p4_unico:200, c2_p5_unico:35, c2_p6_unico:160,
-    c3_p1_adulto:50, c3_p1_nino:32,
-    c3_p2_adulto:70, c3_p2_nino:45,
-    c3_p3_adulto:75, c3_p3_nino:48,
+    c3_p1_v1:50, c3_p1_v2:32, c3_p1_v3:40,
+    c3_p2_v1:70, c3_p2_v2:45, c3_p2_v3:55,
+    c3_p3_v1:75, c3_p3_v2:48, c3_p3_v3:60,
     c3_p4_unico:250, c3_p5_unico:45, c3_p6_unico:200,
   },
   registrations:[
-    {id:'r1', centerId:'c1', type:'adulto', procIds:['p1','p3'], total:115, profitPct:35, earned:40, date:'2026-07-03', deleted:false},
-    {id:'r2', centerId:'c2', type:'nino', procIds:['p2'], total:38, profitPct:30, earned:11, date:'2026-07-05', deleted:false},
-    {id:'r3', centerId:'c3', type:'adulto', procIds:['p4'], total:250, profitPct:40, earned:100, date:'2026-07-06', deleted:false},
+    {id:'r1', centerId:'c1', variableId:'v1', procIds:['p1','p3'], total:115, profitPct:35, earned:40, date:'2026-07-03', deleted:false},
+    {id:'r2', centerId:'c2', variableId:'v1', procIds:['p2'], total:55, profitPct:30, earned:17, date:'2026-07-05', deleted:false},
+    {id:'r3', centerId:'c3', variableId:'v1', procIds:['p4'], total:250, profitPct:40, earned:100, date:'2026-07-06', deleted:false},
   ],
   audit:[
     {ts:'2026-07-03 09:14', action:'creado', desc:'Registro r1 — Clínica Dental Andes'},
@@ -401,13 +414,14 @@ const S = {
   opScreen:'registro',        // 'registro' | 'historial'
   adminScreen:'resumen',
   // registro form state
-  form:{ centerId:'c1', type:null, procIds:[] },
+  form:{ centerId:'c1', variableId:null, procIds:[] },
   ticket:null,                // ticket data to show, or null
   detailReg:null,             // registration id shown in read-only modal
   editReg:null,               // registration id being edited in admin
   addCenterOpen:false,
   addProcOpen:false,
   editCenterId:null,
+  editCenterVars:null,
   editProcId:null,
   tarifaDraft:null,
   tarifaDraftCenter:null,
@@ -431,29 +445,40 @@ function fmtDate(d){
   return dt.toLocaleDateString('es-CL', {day:'2-digit', month:'short'});
 }
 
-function rateFor(centerId, procId, type){
+function rateFor(centerId, procId, variableId){
+  const center = DATA.centers.find(c=>c.id===centerId);
   const proc = DATA.procedures.find(p=>p.id===procId);
-  const key = proc.diff ? `${centerId}_${procId}_${type}` : `${centerId}_${procId}_unico`;
+  const effectiveDiff = proc && proc.diff && center && center.variables.length>0;
+  const key = effectiveDiff ? `${centerId}_${procId}_${variableId}` : `${centerId}_${procId}_unico`;
   return DATA.rates[key] ?? 0;
 }
 
-function profitPctFor(centerId, type){
+function profitPctFor(centerId, variableId){
   const c = DATA.centers.find(x=>x.id===centerId);
   if(!c) return 0;
-  if(c.profitType==='general') return c.profitGeneral || 0;
-  return type==='adulto' ? (c.profitAdulto||0) : (c.profitNino||0);
+  const v = c.variables.find(v=>v.id===variableId);
+  return v ? (v.pct||0) : 0;
+}
+function variableName(centerId, variableId){
+  const c = DATA.centers.find(x=>x.id===centerId);
+  if(!c) return '—';
+  const v = c.variables.find(v=>v.id===variableId);
+  return v ? v.name : '—';
 }
 function profitLabel(c){
-  if(c.profitType==='general') return `${c.profitGeneral}% general`;
-  return `Adulto ${c.profitAdulto}% · Niño ${c.profitNino}%`;
+  if(!c.variables || c.variables.length===0) return 'Sin variables definidas';
+  return c.variables.map(v=>`${v.name} ${v.pct}%`).join(' · ');
 }
 
 function initTarifaDraft(cid){
+  const center = DATA.centers.find(c=>c.id===cid);
   const draft = {};
   DATA.procedures.forEach(p=>{
-    if(p.diff){
-      draft[p.id+'_adulto'] = DATA.rates[cid+'_'+p.id+'_adulto'] ?? 0;
-      draft[p.id+'_nino'] = DATA.rates[cid+'_'+p.id+'_nino'] ?? 0;
+    const effectiveDiff = p.diff && center && center.variables.length>0;
+    if(effectiveDiff){
+      center.variables.forEach(v=>{
+        draft[p.id+'_'+v.id] = DATA.rates[cid+'_'+p.id+'_'+v.id] ?? 0;
+      });
     } else {
       draft[p.id+'_unico'] = DATA.rates[cid+'_'+p.id+'_unico'] ?? 0;
     }
@@ -517,9 +542,11 @@ function opTopbar(){
 
 function opRegistro(){
   const f = S.form;
+  const center = DATA.centers.find(c=>c.id===f.centerId);
+  const variables = center ? center.variables : [];
   const selectedProcs = f.procIds;
-  const total = selectedProcs.reduce((sum,pid)=> sum + (f.type ? rateFor(f.centerId,pid,f.type) : 0), 0);
-  const canSave = f.type && selectedProcs.length>0;
+  const total = selectedProcs.reduce((sum,pid)=> sum + (f.variableId ? rateFor(f.centerId,pid,f.variableId) : 0), 0);
+  const canSave = (variables.length===0 || f.variableId) && selectedProcs.length>0;
 
   return `
   <div class="op-body">
@@ -534,20 +561,23 @@ function opRegistro(){
     </div>
 
     <div class="section-label">Paciente</div>
-    <div class="toggle-row">
-      <button class="toggle-btn adulto ${f.type==='adulto'?'selected':''}" onclick="App.setType('adulto')">Adulto</button>
-      <button class="toggle-btn nino ${f.type==='nino'?'selected':''}" onclick="App.setType('nino')">Niño</button>
-    </div>
+    ${variables.length===0 ? `
+    <p class="hint" style="margin:0 0 20px">Este centro no tiene variables definidas. Agrégalas en Centros dentro del panel admin.</p>
+    ` : `
+    <div class="chip-row" style="margin-bottom:20px">
+      ${variables.map(v=>`<button class="chip ${f.variableId===v.id?'selected':''}" onclick="App.setVariable('${v.id}')">${v.name}</button>`).join('')}
+    </div>`}
 
     <div class="section-label">Procedimientos</div>
     <div class="proc-list">
       ${DATA.procedures.map(p=>{
         const sel = selectedProcs.includes(p.id);
-        const price = f.type ? rateFor(f.centerId,p.id,f.type) : (p.diff ? '—' : money(rateFor(f.centerId,p.id,'unico')));
+        const effectiveDiff = p.diff && variables.length>0;
+        const price = f.variableId ? rateFor(f.centerId,p.id,f.variableId) : (effectiveDiff ? '—' : money(rateFor(f.centerId,p.id,'unico')));
         return `
         <button class="chip proc ${sel?'selected':''}" onclick="App.toggleProc('${p.id}')">
           <span class="p-name">${p.name}</span>
-          <span class="p-price">${f.type ? money(price) : (p.diff ? 'según paciente' : price)}</span>
+          <span class="p-price">${f.variableId ? money(price) : (effectiveDiff ? 'según paciente' : price)}</span>
         </button>`;
       }).join('')}
     </div>
@@ -577,7 +607,7 @@ function opHistorial(){
         <div class="r">
           <div class="total">${money(r.total)}</div>
           <div class="meta" style="color:var(--accent)">+${money(r.earned)}</div>
-          <span class="badge ${r.type}">${r.type==='adulto'?'Adulto':'Niño'}</span>
+          <span class="badge adulto">${variableName(r.centerId, r.variableId)}</span>
         </div>
       </button>
     `).join('')}
@@ -595,9 +625,9 @@ function ticketOverlay(){
         <div class="d">${t.date} · ${t.id.toUpperCase()}</div>
       </div>
       <div class="t-row"><span class="k">Centro</span><span class="v">${centerName(t.centerId)}</span></div>
-      <div class="t-row"><span class="k">Paciente</span><span class="v">${t.type==='adulto'?'Adulto':'Niño'}</span></div>
+      <div class="t-row"><span class="k">Paciente</span><span class="v">${variableName(t.centerId, t.variableId)}</span></div>
       <div class="t-divider"></div>
-      ${t.procIds.map(pid=>`<div class="t-row"><span class="k">${procName(pid)}</span><span class="v">${money(rateFor(t.centerId,pid,t.type))}</span></div>`).join('')}
+      ${t.procIds.map(pid=>`<div class="t-row"><span class="k">${procName(pid)}</span><span class="v">${money(rateFor(t.centerId,pid,t.variableId))}</span></div>`).join('')}
       <div class="t-divider"></div>
       <div class="t-total"><span class="k">Total facturado</span><span class="v">${money(t.total)}</span></div>
       <div class="t-row" style="margin-top:6px"><span class="k">Tu ganancia (${t.profitPct}%)</span><span class="v" style="color:var(--accent)">${money(t.earned)}</span></div>
@@ -615,9 +645,9 @@ function detailModal(){
       <h3>Detalle del registro</h3>
       <div class="t-row"><span class="k">Fecha</span><span class="v">${fmtDate(r.date)}</span></div>
       <div class="t-row"><span class="k">Centro</span><span class="v">${centerName(r.centerId)}</span></div>
-      <div class="t-row"><span class="k">Paciente</span><span class="v">${r.type==='adulto'?'Adulto':'Niño'}</span></div>
+      <div class="t-row"><span class="k">Paciente</span><span class="v">${variableName(r.centerId, r.variableId)}</span></div>
       <div class="t-divider"></div>
-      ${r.procIds.map(pid=>`<div class="t-row"><span class="k">${procName(pid)}</span><span class="v">${money(rateFor(r.centerId,pid,r.type))}</span></div>`).join('')}
+      ${r.procIds.map(pid=>`<div class="t-row"><span class="k">${procName(pid)}</span><span class="v">${money(rateFor(r.centerId,pid,r.variableId))}</span></div>`).join('')}
       <div class="t-divider"></div>
       <div class="t-total"><span class="k">Total facturado</span><span class="v">${money(r.total)}</span></div>
       <div class="t-row" style="margin-top:6px"><span class="k">Tu ganancia (${r.profitPct}%)</span><span class="v" style="color:var(--accent)">${money(r.earned)}</span></div>
@@ -630,7 +660,7 @@ function detailModal(){
 function adminScreen(){
   const screens = {
     resumen: adminResumen, centros: adminCentros, procedimientos: adminProcedimientos,
-    tarifas: adminTarifas, registros: adminRegistros, auditoria: adminAuditoria,
+    tarifas: adminTarifas, registros: adminRegistros, auditoria: adminAuditoria, perfil: adminPerfil,
   };
   return `
   <div class="admin-wrap">
@@ -644,7 +674,10 @@ function adminScreen(){
         ${navBtn('registros','Registros')}
         ${navBtn('auditoria','Auditoría')}
       </div>
-      <button class="back" onclick="App.goOperator()">← Volver a la app</button>
+      <div class="side-footer">
+        <button class="gear-btn ${S.adminScreen==='perfil'?'active':''}" onclick="App.setAdminScreen('perfil')" title="Ajustes">⚙</button>
+        <button class="back" onclick="App.goOperator()">← Volver a la app</button>
+      </div>
     </div>
     <div class="admin-main">${screens[S.adminScreen]()}</div>
   </div>
@@ -764,18 +797,17 @@ function centerCard(c, editing){
       <div class="f"><label>Código postal</label><input id="edit-center-cp-${c.id}" value="${c.billing.cp}"/></div>
     </div>
 
-    <div class="section-label" style="margin-top:16px">Porcentaje de ganancia</div>
-    <div class="toggle-row">
-      <button class="toggle-btn adulto ${c.profitType==='general'?'selected':''}" onclick="App.setEditCenterProfitType('${c.id}','general')">General</button>
-      <button class="toggle-btn nino ${c.profitType==='tipo'?'selected':''}" onclick="App.setEditCenterProfitType('${c.id}','tipo')">Por tipo de paciente</button>
+    <div class="section-label" style="margin-top:16px">Variables y porcentaje de ganancia</div>
+    <p class="hint" style="padding:0 0 10px">Define las categorías de paciente para este centro (ej. Adulto, Niño, Anciano, Perro...) y el % que ganas por cada una.</p>
+    <div class="var-list">
+      ${(S.editCenterVars||[]).map((v,idx)=>`
+        <div class="var-row">
+          <input placeholder="Nombre (ej. Adulto)" value="${v.name}" onchange="App.setCenterVarField(${idx},'name',this.value)"/>
+          <input class="rate-input" style="width:70px" value="${v.pct}" onchange="App.setCenterVarField(${idx},'pct',this.value)"/><span style="font-size:13px;color:var(--ink-faint)">%</span>
+          <button class="icon-btn danger" onclick="App.removeCenterVariable(${idx})">×</button>
+        </div>`).join('') || '<div class="empty" style="padding:14px 0">Sin variables. Agrega al menos una.</div>'}
     </div>
-    ${c.profitType==='general' ? `
-    <div class="f"><label>% general sobre el total</label><input class="rate-input" style="width:100px" id="edit-center-pg-${c.id}" value="${c.profitGeneral}"/></div>
-    ` : `
-    <div class="form-grid">
-      <div class="f"><label>% Adulto</label><input class="rate-input" style="width:100%" id="edit-center-pa-${c.id}" value="${c.profitAdulto}"/></div>
-      <div class="f"><label>% Niño</label><input class="rate-input" style="width:100%" id="edit-center-pn-${c.id}" value="${c.profitNino}"/></div>
-    </div>`}
+    <button class="icon-btn" style="margin-top:8px" onclick="App.addCenterVariable()">+ Agregar variable</button>
 
     <div class="modal-actions" style="margin-top:18px">
       <button onclick="App.cancelEditCenter()">Cancelar</button>
@@ -816,39 +848,42 @@ function adminCentros(){
 function adminProcedimientos(){
   return `
   <div class="admin-head">
-    <div><h1>Procedimientos</h1><p>Catálogo de prestaciones disponibles.</p></div>
+    <div><h1>Procedimientos</h1><p>Catálogo de prestaciones. La diferencia se activa por variable definida en cada centro.</p></div>
     <button class="btn-add" onclick="App.toggleAddProc()">+ Agregar procedimiento</button>
   </div>
   <div class="panel">
     ${S.addProcOpen ? `
     <div class="inline-form">
       <div class="f"><label>Nombre</label><input id="new-proc-name" placeholder="Ej: Sellante"/></div>
-      <div class="f chk"><input type="checkbox" id="new-proc-diff"/><label style="text-transform:none;font-size:13px">Diferencia adulto/niño</label></div>
+      <div class="f chk"><input type="checkbox" id="new-proc-diff"/><label style="text-transform:none;font-size:13px">Diferencia</label></div>
       <button class="icon-btn" onclick="App.addProc()">Guardar</button>
     </div>` : ''}
     <div class="table-wrap"><table>
-      <thead><tr><th>Procedimiento</th><th>Diferencia adulto/niño</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Procedimiento</th><th>Diferencia</th><th>Acciones</th></tr></thead>
       <tbody>
         ${DATA.procedures.map(p=>`
         <tr>
           ${S.editProcId===p.id ? `
           <td><input class="rate-input" style="width:100%;text-align:left" id="edit-proc-name-${p.id}" value="${p.name}"/></td>
-          <td><label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-soft)"><input type="checkbox" id="edit-proc-diff-${p.id}" ${p.diff?'checked':''}/> Adulto/niño</label></td>
+          <td><label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-soft)"><input type="checkbox" id="edit-proc-diff-${p.id}" ${p.diff?'checked':''}/> Activada</label></td>
           <td class="row-actions">
             <button class="icon-btn" onclick="App.saveEditProc('${p.id}')">Guardar</button>
             <button class="icon-btn" onclick="App.cancelEditProc()">Cancelar</button>
           </td>` : `
           <td style="font-weight:600">${p.name}</td>
-          <td>${p.diff ? '<span class="badge adulto">Sí</span>' : '<span class="badge" style="background:var(--surface-alt);color:var(--ink-faint)">No</span>'}</td>
+          <td>${p.diff ? '<span class="badge adulto">Activada</span>' : '<span class="badge" style="background:var(--surface-alt);color:var(--ink-faint)">Desactivada</span>'}</td>
           <td class="row-actions"><button class="icon-btn" onclick="App.openEditProc('${p.id}')">Editar</button></td>`}
         </tr>`).join('')}
       </tbody>
     </table></div>
+    <p class="hint">Cuando está activada, la tarifa se define por cada variable que hayas creado en el centro (en la pantalla Tarifas).</p>
   </div>`;
 }
 
 function adminTarifas(){
   const cid = S.tarifaCenterId;
+  const center = DATA.centers.find(c=>c.id===cid);
+  const variables = center ? center.variables : [];
   if(!S.tarifaDraft || S.tarifaDraftCenter !== cid){
     S.tarifaDraft = initTarifaDraft(cid);
     S.tarifaDraftCenter = cid;
@@ -856,27 +891,30 @@ function adminTarifas(){
   }
   const draft = S.tarifaDraft;
   return `
-  <div class="admin-head"><div><h1>Tarifas</h1><p>Valor de cada procedimiento por centro.</p></div></div>
+  <div class="admin-head"><div><h1>Tarifas</h1><p>Valor de cada procedimiento por centro y variable.</p></div></div>
   <div class="rate-select">
     <select onchange="App.setTarifaCenter(this.value)">
       ${DATA.centers.map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${c.name}</option>`).join('')}
     </select>
   </div>
+  ${variables.length===0 ? `
+  <div class="panel"><p class="hint" style="padding:16px 18px">Este centro no tiene variables definidas — todas las tarifas se guardan como valor único. Ve a Centros para agregar variables (Adulto, Niño, etc.).</p></div>
+  ` : ''}
   <div class="panel">
     <div class="table-wrap"><table>
-      <thead><tr><th>Procedimiento</th><th>Adulto</th><th>Niño</th></tr></thead>
+      <thead><tr><th>Procedimiento</th>${variables.length===0 ? '<th>Valor</th>' : variables.map(v=>`<th>${v.name}</th>`).join('')}</tr></thead>
       <tbody>
         ${DATA.procedures.map(p=>{
-          if(p.diff){
+          const effectiveDiff = p.diff && variables.length>0;
+          if(effectiveDiff){
             return `<tr>
               <td style="font-weight:600">${p.name}</td>
-              <td><input class="rate-input" value="${draft[p.id+'_adulto']}" onchange="App.setDraftRate('${p.id}','adulto',this.value)"/></td>
-              <td><input class="rate-input" value="${draft[p.id+'_nino']}" onchange="App.setDraftRate('${p.id}','nino',this.value)"/></td>
+              ${variables.map(v=>`<td><input class="rate-input" value="${draft[p.id+'_'+v.id]}" onchange="App.setDraftRate('${p.id}_${v.id}',this.value)"/></td>`).join('')}
             </tr>`;
           }
           return `<tr>
             <td style="font-weight:600">${p.name}</td>
-            <td colspan="2"><input class="rate-input" style="width:100%;text-align:left" value="${draft[p.id+'_unico']}" onchange="App.setDraftRate('${p.id}','unico',this.value)"/></td>
+            <td colspan="${Math.max(variables.length,1)}"><input class="rate-input" style="width:100%;text-align:left" value="${draft[p.id+'_unico']}" onchange="App.setDraftRate('${p.id}_unico',this.value)"/></td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -903,7 +941,7 @@ function adminRegistros(){
         <tr class="${r.deleted?'eliminado':''}">
           <td>${fmtDate(r.date)}</td>
           <td>${centerName(r.centerId)}</td>
-          <td><span class="badge ${r.type}">${r.type==='adulto'?'Adulto':'Niño'}</span></td>
+          <td><span class="badge adulto">${variableName(r.centerId, r.variableId)}</span></td>
           <td style="color:var(--ink-soft)">${r.procIds.map(procName).join(', ')}</td>
           <td style="font-family:var(--mono)">${money(r.total)}</td>
           <td style="font-family:var(--mono);color:var(--accent)">${money(r.earned)} <span style="color:var(--ink-faint);font-size:11px">(${r.profitPct}%)</span></td>
@@ -933,17 +971,44 @@ function adminAuditoria(){
   </div>`;
 }
 
+function adminPerfil(){
+  if(!S.profileDraft){
+    S.profileDraft = {...DATA.profile};
+    S.profileDirty = false;
+  }
+  const d = S.profileDraft;
+  return `
+  <div class="admin-head"><div><h1>Perfil</h1><p>Tus datos personales. Todos los campos son opcionales.</p></div></div>
+  <div class="panel" style="padding:18px">
+    <div class="form-grid">
+      <div class="f"><label>Nombre</label><input value="${d.nombre}" onchange="App.setProfileField('nombre',this.value)"/></div>
+      <div class="f"><label>Apellido</label><input value="${d.apellido}" onchange="App.setProfileField('apellido',this.value)"/></div>
+      <div class="f"><label>Calle</label><input value="${d.calle}" onchange="App.setProfileField('calle',this.value)"/></div>
+      <div class="f"><label>Ciudad</label><input value="${d.ciudad}" onchange="App.setProfileField('ciudad',this.value)"/></div>
+      <div class="f"><label>Código postal</label><input value="${d.cp}" onchange="App.setProfileField('cp',this.value)"/></div>
+      <div class="f"><label>DNI</label><input value="${d.dni}" onchange="App.setProfileField('dni',this.value)"/></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding-top:16px">
+      <button class="btn-add" onclick="App.saveProfile()" ${S.profileDirty?'':'disabled'} style="${S.profileDirty?'':'opacity:.45;cursor:default'}">Guardar cambios</button>
+      <span style="font-size:12.5px;color:${S.profileDirty?'var(--amber)':'var(--ink-faint)'}">
+        ${S.profileDirty ? 'Tienes cambios sin guardar' : (S.profileSaved ? 'Guardado ✓' : 'Sin cambios pendientes')}
+      </span>
+    </div>
+  </div>`;
+}
+
 function editModal(){
   const r = DATA.registrations.find(x=>x.id===S.editReg);
   if(!r) return '';
+  const center = DATA.centers.find(c=>c.id===r.centerId);
+  const variables = center ? center.variables : [];
   return `
   <div class="modal-overlay" onclick="if(event.target===this) App.closeEdit()">
     <div class="modal">
       <h3>Editar registro</h3>
       <div class="section-label">Paciente</div>
-      <div class="toggle-row">
-        <button class="toggle-btn adulto ${r.type==='adulto'?'selected':''}" onclick="App.editSetType('adulto')">Adulto</button>
-        <button class="toggle-btn nino ${r.type==='nino'?'selected':''}" onclick="App.editSetType('nino')">Niño</button>
+      <div class="chip-row" style="margin-bottom:16px">
+        ${variables.map(v=>`<button class="chip ${r.variableId===v.id?'selected':''}" onclick="App.editSetVariable('${v.id}')">${v.name}</button>`).join('') || '<p class="hint">Sin variables definidas en este centro.</p>'}
       </div>
       <div class="section-label">Procedimientos</div>
       <div class="proc-list">
@@ -951,7 +1016,7 @@ function editModal(){
           const sel = r.procIds.includes(p.id);
           return `<button class="chip proc ${sel?'selected':''}" onclick="App.editToggleProc('${p.id}')">
             <span class="p-name">${p.name}</span>
-            <span class="p-price">${money(rateFor(r.centerId,p.id,r.type))}</span>
+            <span class="p-price">${money(rateFor(r.centerId,p.id,r.variableId))}</span>
           </button>`;
         }).join('')}
       </div>
@@ -970,8 +1035,14 @@ const App = {
   login(){ S.loggedIn = true; render(); },
 
   setOpScreen(s){ S.opScreen = s; render(); },
-  setCenter(id){ S.form.centerId = id; render(); },
-  setType(t){ S.form.type = t; render(); },
+  setCenter(id){
+    S.form.centerId = id;
+    const center = DATA.centers.find(c=>c.id===id);
+    const vars = center ? center.variables : [];
+    S.form.variableId = vars.length===1 ? vars[0].id : null;
+    render();
+  },
+  setVariable(id){ S.form.variableId = id; render(); },
   toggleProc(id){
     const i = S.form.procIds.indexOf(id);
     if(i>-1) S.form.procIds.splice(i,1); else S.form.procIds.push(id);
@@ -979,13 +1050,13 @@ const App = {
   },
   saveRegistro(){
     const f = S.form;
-    const total = f.procIds.reduce((s,pid)=>s+rateFor(f.centerId,pid,f.type),0);
-    const profitPct = profitPctFor(f.centerId, f.type);
+    const total = f.procIds.reduce((s,pid)=>s+rateFor(f.centerId,pid,f.variableId),0);
+    const profitPct = profitPctFor(f.centerId, f.variableId);
     const earned = Math.round(total * profitPct / 100);
     regCounter++;
     const id = 'r'+regCounter;
     const date = new Date().toISOString().slice(0,10);
-    const reg = {id, centerId:f.centerId, type:f.type, procIds:[...f.procIds], total, profitPct, earned, date, deleted:false};
+    const reg = {id, centerId:f.centerId, variableId:f.variableId, procIds:[...f.procIds], total, profitPct, earned, date, deleted:false};
     DATA.registrations.push(reg);
     DATA.audit.push({ts: date+' '+new Date().toTimeString().slice(0,5), action:'creado', desc:`Registro ${id} — ${centerName(f.centerId)}`});
     S.ticket = reg;
@@ -993,7 +1064,9 @@ const App = {
   },
   closeTicket(){
     S.ticket = null;
-    S.form = {centerId:S.form.centerId, type:null, procIds:[]};
+    const center = DATA.centers.find(c=>c.id===S.form.centerId);
+    const vars = center ? center.variables : [];
+    S.form = {centerId:S.form.centerId, variableId: vars.length===1 ? vars[0].id : null, procIds:[]};
     render();
   },
   openDetail(id){ S.detailReg = id; render(); },
@@ -1013,19 +1086,25 @@ const App = {
     const id = 'c'+(DATA.centers.length+1);
     DATA.centers.push({id, name, active:true,
       billing:{rep:'', street:'', city:'', cp:'', cif:''},
-      profitType:'general', profitGeneral:0, profitAdulto:0, profitNino:0});
-    DATA.procedures.forEach(p=>{
-      if(p.diff){ DATA.rates[id+'_'+p.id+'_adulto']=0; DATA.rates[id+'_'+p.id+'_nino']=0; }
-      else { DATA.rates[id+'_'+p.id+'_unico']=0; }
-    });
+      variables:[]});
+    DATA.procedures.forEach(p=>{ DATA.rates[id+'_'+p.id+'_unico']=0; });
     DATA.audit.push({ts:nowTs(), action:'creado', desc:`Centro creado: ${name}`});
     S.addCenterOpen = false; render();
   },
-  openEditCenter(id){ S.editCenterId = id; render(); },
-  cancelEditCenter(){ S.editCenterId = null; render(); },
-  setEditCenterProfitType(id, type){
+  openEditCenter(id){
     const c = DATA.centers.find(x=>x.id===id);
-    c.profitType = type;
+    S.editCenterId = id;
+    S.editCenterVars = c.variables.map(v=>({id:v.id, name:v.name, pct:v.pct}));
+    render();
+  },
+  cancelEditCenter(){ S.editCenterId = null; S.editCenterVars = null; render(); },
+  addCenterVariable(){
+    S.editCenterVars.push({id:'tmp'+Date.now()+Math.floor(Math.random()*1000), name:'', pct:0});
+    render();
+  },
+  removeCenterVariable(idx){ S.editCenterVars.splice(idx,1); render(); },
+  setCenterVarField(idx, field, val){
+    S.editCenterVars[idx][field] = field==='pct' ? (parseFloat(val)||0) : val;
     render();
   },
   saveEditCenter(id){
@@ -1040,14 +1119,19 @@ const App = {
       cp: document.getElementById('edit-center-cp-'+id).value.trim(),
       cif: document.getElementById('edit-center-cif-'+id).value.trim(),
     };
-    if(c.profitType==='general'){
-      c.profitGeneral = parseFloat(document.getElementById('edit-center-pg-'+id).value)||0;
-    } else {
-      c.profitAdulto = parseFloat(document.getElementById('edit-center-pa-'+id).value)||0;
-      c.profitNino = parseFloat(document.getElementById('edit-center-pn-'+id).value)||0;
-    }
+    let maxIdx = 0;
+    (S.editCenterVars||[]).forEach(v=>{
+      if(!v.id.startsWith('tmp')){
+        const n = parseInt(v.id.replace('v',''),10);
+        if(!isNaN(n) && n>maxIdx) maxIdx = n;
+      }
+    });
+    let vcounter = maxIdx+1;
+    c.variables = (S.editCenterVars||[])
+      .filter(v=>v.name && v.name.trim())
+      .map(v=>({ id: v.id.startsWith('tmp') ? 'v'+(vcounter++) : v.id, name: v.name.trim(), pct: v.pct||0 }));
     DATA.audit.push({ts:nowTs(), action:'editado', desc:`Centro actualizado: ${name} (${profitLabel(c)})`});
-    S.editCenterId = null; render();
+    S.editCenterId = null; S.editCenterVars = null; S.tarifaDraft = null; render();
   },
 
   toggleAddProc(){ S.addProcOpen = !S.addProcOpen; render(); },
@@ -1058,8 +1142,11 @@ const App = {
     const id = 'p'+(DATA.procedures.length+1);
     DATA.procedures.push({id, name, diff});
     DATA.centers.forEach(c=>{
-      if(diff){ DATA.rates[c.id+'_'+id+'_adulto']=0; DATA.rates[c.id+'_'+id+'_nino']=0; }
-      else { DATA.rates[c.id+'_'+id+'_unico']=0; }
+      if(diff && c.variables.length>0){
+        c.variables.forEach(v=>{ DATA.rates[c.id+'_'+id+'_'+v.id]=0; });
+      } else {
+        DATA.rates[c.id+'_'+id+'_unico']=0;
+      }
     });
     S.addProcOpen = false; render();
   },
@@ -1073,16 +1160,16 @@ const App = {
     p.name = name;
     if(newDiff !== p.diff){
       DATA.centers.forEach(c=>{
+        if(c.variables.length===0) return; // sin variables, siempre queda como 'unico'
         if(newDiff){
           const base = DATA.rates[c.id+'_'+id+'_unico'] ?? 0;
-          DATA.rates[c.id+'_'+id+'_adulto'] = base;
-          DATA.rates[c.id+'_'+id+'_nino'] = base;
+          c.variables.forEach(v=>{ DATA.rates[c.id+'_'+id+'_'+v.id] = base; });
           delete DATA.rates[c.id+'_'+id+'_unico'];
         } else {
-          const base = DATA.rates[c.id+'_'+id+'_adulto'] ?? 0;
+          const firstVar = c.variables[0];
+          const base = firstVar ? (DATA.rates[c.id+'_'+id+'_'+firstVar.id] ?? 0) : 0;
           DATA.rates[c.id+'_'+id+'_unico'] = base;
-          delete DATA.rates[c.id+'_'+id+'_adulto'];
-          delete DATA.rates[c.id+'_'+id+'_nino'];
+          c.variables.forEach(v=>{ delete DATA.rates[c.id+'_'+id+'_'+v.id]; });
         }
       });
       p.diff = newDiff;
@@ -1096,9 +1183,15 @@ const App = {
   setTarifaCenter(id){ S.tarifaCenterId = id; S.tarifaDraft = null; render(); },
   setResumenCenter(id){ S.resumenCenterId = id; render(); },
   setResumenGroup(mode){ S.resumenGroup = mode; render(); },
-  setDraftRate(pid,type,val){
+  setProfileField(field,val){ S.profileDraft[field] = val; S.profileDirty = true; S.profileSaved = false; render(); },
+  saveProfile(){
+    DATA.profile = {...S.profileDraft};
+    DATA.audit.push({ts:nowTs(), action:'editado', desc:'Perfil actualizado'});
+    S.profileDirty = false; S.profileSaved = true; render();
+  },
+  setDraftRate(key,val){
     const n = parseInt(val,10)||0;
-    S.tarifaDraft[pid+'_'+type] = n;
+    S.tarifaDraft[key] = n;
     S.tarifaDirty = true;
     S.tarifaSaved = false;
     render();
@@ -1116,11 +1209,11 @@ const App = {
 
   openEdit(id){ S.editReg = id; render(); },
   closeEdit(){ S.editReg = null; render(); },
-  editSetType(t){
+  editSetVariable(vid){
     const r = DATA.registrations.find(x=>x.id===S.editReg);
-    r.type = t;
-    r.total = r.procIds.reduce((s,pid)=>s+rateFor(r.centerId,pid,r.type),0);
-    r.profitPct = profitPctFor(r.centerId, r.type);
+    r.variableId = vid;
+    r.total = r.procIds.reduce((s,pid)=>s+rateFor(r.centerId,pid,r.variableId),0);
+    r.profitPct = profitPctFor(r.centerId, r.variableId);
     r.earned = Math.round(r.total * r.profitPct / 100);
     render();
   },
@@ -1128,8 +1221,8 @@ const App = {
     const r = DATA.registrations.find(x=>x.id===S.editReg);
     const i = r.procIds.indexOf(pid);
     if(i>-1) r.procIds.splice(i,1); else r.procIds.push(pid);
-    r.total = r.procIds.reduce((s,id)=>s+rateFor(r.centerId,id,r.type),0);
-    r.profitPct = profitPctFor(r.centerId, r.type);
+    r.total = r.procIds.reduce((s,id)=>s+rateFor(r.centerId,id,r.variableId),0);
+    r.profitPct = profitPctFor(r.centerId, r.variableId);
     r.earned = Math.round(r.total * r.profitPct / 100);
     render();
   },
