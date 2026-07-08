@@ -276,6 +276,14 @@
   .seg-btn{padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:7px;font-size:11.5px;font-weight:600;color:var(--ink-soft);}
   .seg-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
   .table-wrap{overflow-x:auto;}
+  .center-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .c-name{font-weight:700;font-size:14.5px;}
+  .c-sub{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+  .c-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--border);font-size:13px;}
+  .c-row .c-k{color:var(--ink-soft);flex-shrink:0;}
+  .c-row .c-v{text-align:right;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:4px;}
+  .form-grid .f input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;}
 
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{text-align:left;padding:10px 16px;background:var(--surface-alt);color:var(--ink-soft);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;}
@@ -291,9 +299,9 @@
   .switch.on .knob{left:18px;}
 
   .inline-form{padding:16px 18px;background:var(--surface-alt);display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
-  .inline-form .f{display:flex;flex-direction:column;gap:5px;}
-  .inline-form label{font-size:11px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
-  .inline-form input{padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;min-width:160px;}
+  .inline-form .f, .f{display:flex;flex-direction:column;gap:5px;}
+  .inline-form label, .f label{font-size:11px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .inline-form input, .f input{padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;min-width:0;}
   .inline-form .chk{flex-direction:row;align-items:center;gap:7px;padding-bottom:9px;}
 
   .rate-select{margin-bottom:16px;}
@@ -339,10 +347,17 @@
 /* ---------------- MOCK DATA ---------------- */
 const DATA = {
   user:{name:'Dra. Valentina Rojas', initials:'VR'},
+  profile:{ nombre:'Valentina', apellido:'Rojas', calle:'', ciudad:'', cp:'', dni:'' },
   centers:[
-    {id:'c1', name:'Clínica Dental Andes', active:true},
-    {id:'c2', name:'Hospital San Rafael', active:true},
-    {id:'c3', name:'Clínica Bellavista', active:true},
+    {id:'c1', name:'Clínica Dental Andes', active:true,
+      billing:{rep:'Dra. Valentina Rojas', street:'Calle Mayor 12', city:'Madrid', cp:'28013', cif:'B12345678'},
+      profitType:'general', profitGeneral:35, profitAdulto:0, profitNino:0},
+    {id:'c2', name:'Hospital San Rafael', active:true,
+      billing:{rep:'Hospital San Rafael S.L.', street:'Av. de la Constitución 45', city:'Sevilla', cp:'41001', cif:'B87654321'},
+      profitType:'general', profitGeneral:30, profitAdulto:0, profitNino:0},
+    {id:'c3', name:'Clínica Bellavista', active:true,
+      billing:{rep:'Clínica Bellavista S.L.', street:'Passeig de Gràcia 88', city:'Barcelona', cp:'08008', cif:'B11223344'},
+      profitType:'tipo', profitGeneral:0, profitAdulto:40, profitNino:25},
   ],
   procedures:[
     {id:'p1', name:'Limpieza dental', diff:true},
@@ -367,9 +382,9 @@ const DATA = {
     c3_p4_unico:250, c3_p5_unico:45, c3_p6_unico:200,
   },
   registrations:[
-    {id:'r1', centerId:'c1', type:'adulto', procIds:['p1','p3'], total:115, date:'2026-07-03', deleted:false},
-    {id:'r2', centerId:'c2', type:'nino', procIds:['p2'], total:38, date:'2026-07-05', deleted:false},
-    {id:'r3', centerId:'c3', type:'adulto', procIds:['p4'], total:250, date:'2026-07-06', deleted:false},
+    {id:'r1', centerId:'c1', type:'adulto', procIds:['p1','p3'], total:115, profitPct:35, earned:40, date:'2026-07-03', deleted:false},
+    {id:'r2', centerId:'c2', type:'nino', procIds:['p2'], total:38, profitPct:30, earned:11, date:'2026-07-05', deleted:false},
+    {id:'r3', centerId:'c3', type:'adulto', procIds:['p4'], total:250, profitPct:40, earned:100, date:'2026-07-06', deleted:false},
   ],
   audit:[
     {ts:'2026-07-03 09:14', action:'creado', desc:'Registro r1 — Clínica Dental Andes'},
@@ -398,6 +413,10 @@ const S = {
   tarifaDraftCenter:null,
   tarifaDirty:false,
   tarifaSaved:false,
+  profileDraft:null,
+  profileDirty:false,
+  profileSaved:false,
+
   tarifaCenterId:'c1',
   resumenCenterId:'all',
   resumenGroup:'dia',
@@ -416,6 +435,17 @@ function rateFor(centerId, procId, type){
   const proc = DATA.procedures.find(p=>p.id===procId);
   const key = proc.diff ? `${centerId}_${procId}_${type}` : `${centerId}_${procId}_unico`;
   return DATA.rates[key] ?? 0;
+}
+
+function profitPctFor(centerId, type){
+  const c = DATA.centers.find(x=>x.id===centerId);
+  if(!c) return 0;
+  if(c.profitType==='general') return c.profitGeneral || 0;
+  return type==='adulto' ? (c.profitAdulto||0) : (c.profitNino||0);
+}
+function profitLabel(c){
+  if(c.profitType==='general') return `${c.profitGeneral}% general`;
+  return `Adulto ${c.profitAdulto}% · Niño ${c.profitNino}%`;
 }
 
 function initTarifaDraft(cid){
@@ -546,6 +576,7 @@ function opHistorial(){
         </div>
         <div class="r">
           <div class="total">${money(r.total)}</div>
+          <div class="meta" style="color:var(--accent)">+${money(r.earned)}</div>
           <span class="badge ${r.type}">${r.type==='adulto'?'Adulto':'Niño'}</span>
         </div>
       </button>
@@ -568,7 +599,8 @@ function ticketOverlay(){
       <div class="t-divider"></div>
       ${t.procIds.map(pid=>`<div class="t-row"><span class="k">${procName(pid)}</span><span class="v">${money(rateFor(t.centerId,pid,t.type))}</span></div>`).join('')}
       <div class="t-divider"></div>
-      <div class="t-total"><span class="k">Total</span><span class="v">${money(t.total)}</span></div>
+      <div class="t-total"><span class="k">Total facturado</span><span class="v">${money(t.total)}</span></div>
+      <div class="t-row" style="margin-top:6px"><span class="k">Tu ganancia (${t.profitPct}%)</span><span class="v" style="color:var(--accent)">${money(t.earned)}</span></div>
       <button class="btn-ticket-close" onclick="App.closeTicket()">Nuevo registro</button>
     </div>
   </div>`;
@@ -587,7 +619,8 @@ function detailModal(){
       <div class="t-divider"></div>
       ${r.procIds.map(pid=>`<div class="t-row"><span class="k">${procName(pid)}</span><span class="v">${money(rateFor(r.centerId,pid,r.type))}</span></div>`).join('')}
       <div class="t-divider"></div>
-      <div class="t-total"><span class="k">Total</span><span class="v">${money(r.total)}</span></div>
+      <div class="t-total"><span class="k">Total facturado</span><span class="v">${money(r.total)}</span></div>
+      <div class="t-row" style="margin-top:6px"><span class="k">Tu ganancia (${r.profitPct}%)</span><span class="v" style="color:var(--accent)">${money(r.earned)}</span></div>
       <div class="modal-actions"><button class="primary" onclick="App.closeDetail()">Cerrar</button></div>
     </div>
   </div>`;
@@ -637,8 +670,8 @@ function groupRegs(regs, mode){
   const map = {};
   regs.forEach(r=>{
     const k = periodKey(r.date, mode);
-    if(!map[k]) map[k] = {key:k, count:0, total:0};
-    map[k].count++; map[k].total += r.total;
+    if(!map[k]) map[k] = {key:k, count:0, total:0, earned:0};
+    map[k].count++; map[k].total += r.total; map[k].earned += (r.earned||0);
   });
   return Object.values(map).sort((a,b)=> b.key.localeCompare(a.key));
 }
@@ -651,9 +684,11 @@ function adminResumen(){
   const cid = S.resumenCenterId;
   const filtered = cid==='all' ? active : active.filter(r=>r.centerId===cid);
   const totalFact = filtered.reduce((s,r)=>s+r.total,0);
+  const totalGanado = filtered.reduce((s,r)=>s+(r.earned||0),0);
   const byCenter = DATA.centers.map(c=>({
     id:c.id, name:c.name,
     total: active.filter(r=>r.centerId===c.id).reduce((s,r)=>s+r.total,0),
+    earned: active.filter(r=>r.centerId===c.id).reduce((s,r)=>s+(r.earned||0),0),
   }));
   const maxTotal = Math.max(1, ...byCenter.map(b=>b.total));
   const recent = [...filtered].reverse().slice(0,4);
@@ -675,20 +710,20 @@ function adminResumen(){
   <div class="cards-row">
     <div class="stat-card"><div class="lbl">Registros</div><div class="val">${filtered.length}</div></div>
     <div class="stat-card"><div class="lbl">Total facturado</div><div class="val">${money(totalFact)}</div></div>
+    <div class="stat-card"><div class="lbl">Total ganado</div><div class="val" style="color:var(--accent)">${money(totalGanado)}</div></div>
     ${cid==='all'
       ? `<div class="stat-card"><div class="lbl">Centros activos</div><div class="val">${DATA.centers.filter(c=>c.active).length}</div></div>`
       : `<div class="stat-card"><div class="lbl">Promedio por registro</div><div class="val">${money(filtered.length? Math.round(totalFact/filtered.length):0)}</div></div>`}
-    <div class="stat-card"><div class="lbl">Procedimientos</div><div class="val">${DATA.procedures.length}</div></div>
   </div>
 
   ${cid==='all' ? `
   <div class="panel">
-    <div class="panel-title">Facturado por centro — toca uno para ver su historial</div>
+    <div class="panel-title">Facturado y ganado por centro — toca uno para ver su historial</div>
     ${byCenter.map(b=>`
       <button class="bar-row" style="width:100%;border:none;background:none;text-align:left;">
         <div class="name" onclick="App.setResumenCenter('${b.id}')" style="cursor:pointer">${b.name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(b.total/maxTotal*100).toFixed(0)}%"></div></div>
-        <div class="amt">${money(b.total)}</div>
+        <div class="amt">${money(b.total)} <span style="color:var(--accent)">· ${money(b.earned)}</span></div>
       </button>`).join('')}
   </div>` : `
   <div class="panel">
@@ -700,7 +735,7 @@ function adminResumen(){
       <div class="bar-row">
         <div class="name">${periodLabel(g.key,S.resumenGroup)}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(g.total/maxGroup*100).toFixed(0)}%"></div></div>
-        <div class="amt">${money(g.total)} · ${g.count} reg.</div>
+        <div class="amt">${money(g.total)} <span style="color:var(--accent)">· ${money(g.earned)}</span></div>
       </div>`).join('')}
   </div>`}
 
@@ -710,42 +745,72 @@ function adminResumen(){
       <div class="bar-row">
         <div class="name">${centerName(r.centerId)}</div>
         <div class="bar-track" style="visibility:hidden"></div>
-        <div class="amt">${fmtDate(r.date)} · ${money(r.total)}</div>
+        <div class="amt">${fmtDate(r.date)} · ${money(r.total)} <span style="color:var(--accent)">· ${money(r.earned)}</span></div>
       </div>`).join('')}
   </div>`;
+}
+
+function centerCard(c, editing){
+  if(editing){
+    return `
+    <div class="f"><label>Nombre del centro</label><input class="rate-input" style="width:100%;text-align:left" id="edit-center-name-${c.id}" value="${c.name}"/></div>
+
+    <div class="section-label" style="margin-top:16px">Datos de facturación</div>
+    <div class="form-grid">
+      <div class="f"><label>Representante</label><input id="edit-center-rep-${c.id}" value="${c.billing.rep}"/></div>
+      <div class="f"><label>CIF</label><input id="edit-center-cif-${c.id}" value="${c.billing.cif}"/></div>
+      <div class="f"><label>Calle</label><input id="edit-center-street-${c.id}" value="${c.billing.street}"/></div>
+      <div class="f"><label>Ciudad</label><input id="edit-center-city-${c.id}" value="${c.billing.city}"/></div>
+      <div class="f"><label>Código postal</label><input id="edit-center-cp-${c.id}" value="${c.billing.cp}"/></div>
+    </div>
+
+    <div class="section-label" style="margin-top:16px">Porcentaje de ganancia</div>
+    <div class="toggle-row">
+      <button class="toggle-btn adulto ${c.profitType==='general'?'selected':''}" onclick="App.setEditCenterProfitType('${c.id}','general')">General</button>
+      <button class="toggle-btn nino ${c.profitType==='tipo'?'selected':''}" onclick="App.setEditCenterProfitType('${c.id}','tipo')">Por tipo de paciente</button>
+    </div>
+    ${c.profitType==='general' ? `
+    <div class="f"><label>% general sobre el total</label><input class="rate-input" style="width:100px" id="edit-center-pg-${c.id}" value="${c.profitGeneral}"/></div>
+    ` : `
+    <div class="form-grid">
+      <div class="f"><label>% Adulto</label><input class="rate-input" style="width:100%" id="edit-center-pa-${c.id}" value="${c.profitAdulto}"/></div>
+      <div class="f"><label>% Niño</label><input class="rate-input" style="width:100%" id="edit-center-pn-${c.id}" value="${c.profitNino}"/></div>
+    </div>`}
+
+    <div class="modal-actions" style="margin-top:18px">
+      <button onclick="App.cancelEditCenter()">Cancelar</button>
+      <button class="primary" onclick="App.saveEditCenter('${c.id}')">Guardar</button>
+    </div>`;
+  }
+  return `
+  <div class="center-card-head">
+    <div>
+      <div class="c-name">${c.name}</div>
+      <div class="c-sub">${c.billing.rep || 'Sin representante'} · ${c.billing.cif || 'sin CIF'}</div>
+    </div>
+    <button class="switch ${c.active?'on':''}" onclick="App.toggleCenterActive('${c.id}')"><span class="knob"></span></button>
+  </div>
+  <div class="c-row"><span class="c-k">Facturación</span><span class="c-v">${c.billing.street || '—'}, ${c.billing.city || '—'} ${c.billing.cp || ''}</span></div>
+  <div class="c-row"><span class="c-k">Ganancia</span><span class="c-v" style="color:var(--accent);font-weight:600">${profitLabel(c)}</span></div>
+  <button class="icon-btn" style="margin-top:10px" onclick="App.openEditCenter('${c.id}')">Editar centro</button>`;
 }
 
 function adminCentros(){
   return `
   <div class="admin-head">
-    <div><h1>Centros</h1><p>Clínicas y hospitales donde registras atenciones.</p></div>
+    <div><h1>Centros</h1><p>Clínicas y hospitales, con su facturación y tu porcentaje de ganancia en cada uno.</p></div>
     <button class="btn-add" onclick="App.toggleAddCenter()">+ Agregar centro</button>
   </div>
+  ${S.addCenterOpen ? `
   <div class="panel">
-    ${S.addCenterOpen ? `
     <div class="inline-form">
-      <div class="f"><label>Nombre</label><input id="new-center-name" placeholder="Ej: Clínica Los Robles"/></div>
-      <button class="icon-btn" onclick="App.addCenter()">Guardar</button>
-    </div>` : ''}
-    <div class="table-wrap"><table>
-      <thead><tr><th>Nombre</th><th>Activo</th><th>Acciones</th></tr></thead>
-      <tbody>
-        ${DATA.centers.map(c=>`
-        <tr>
-          ${S.editCenterId===c.id ? `
-          <td><input class="rate-input" style="width:100%;text-align:left" id="edit-center-name-${c.id}" value="${c.name}"/></td>
-          <td><button class="switch ${c.active?'on':''}" onclick="App.toggleCenterActive('${c.id}')"><span class="knob"></span></button></td>
-          <td class="row-actions">
-            <button class="icon-btn" onclick="App.saveEditCenter('${c.id}')">Guardar</button>
-            <button class="icon-btn" onclick="App.cancelEditCenter()">Cancelar</button>
-          </td>` : `
-          <td style="font-weight:600">${c.name}</td>
-          <td><button class="switch ${c.active?'on':''}" onclick="App.toggleCenterActive('${c.id}')"><span class="knob"></span></button></td>
-          <td class="row-actions"><button class="icon-btn" onclick="App.openEditCenter('${c.id}')">Editar</button></td>`}
-        </tr>`).join('')}
-      </tbody>
-    </table></div>
-  </div>`;
+      <div class="f"><label>Nombre del centro</label><input id="new-center-name" placeholder="Ej: Clínica Los Robles"/></div>
+      <button class="icon-btn" onclick="App.addCenter()">Crear centro</button>
+    </div>
+    <p class="hint">Completa la facturación y el porcentaje de ganancia editando el centro luego de crearlo.</p>
+  </div>` : ''}
+  ${DATA.centers.map(c=>`<div class="panel" style="padding:18px">${centerCard(c, S.editCenterId===c.id)}</div>`).join('')}
+  `;
 }
 
 function adminProcedimientos(){
@@ -832,7 +897,7 @@ function adminRegistros(){
   <div class="admin-head"><div><h1>Registros</h1><p>Todas las atenciones ingresadas, con edición y borrado auditado.</p></div></div>
   <div class="panel">
     <div class="table-wrap"><table>
-      <thead><tr><th>Fecha</th><th>Centro</th><th>Paciente</th><th>Procedimientos</th><th>Total</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Centro</th><th>Paciente</th><th>Procedimientos</th><th>Total</th><th>Ganancia</th><th>Acciones</th></tr></thead>
       <tbody>
         ${regs.map(r=>`
         <tr class="${r.deleted?'eliminado':''}">
@@ -841,6 +906,7 @@ function adminRegistros(){
           <td><span class="badge ${r.type}">${r.type==='adulto'?'Adulto':'Niño'}</span></td>
           <td style="color:var(--ink-soft)">${r.procIds.map(procName).join(', ')}</td>
           <td style="font-family:var(--mono)">${money(r.total)}</td>
+          <td style="font-family:var(--mono);color:var(--accent)">${money(r.earned)} <span style="color:var(--ink-faint);font-size:11px">(${r.profitPct}%)</span></td>
           <td class="row-actions">
             <button class="icon-btn" onclick="App.openEdit('${r.id}')" ${r.deleted?'disabled':''}>Editar</button>
             <button class="icon-btn danger" onclick="App.deleteReg('${r.id}')" ${r.deleted?'disabled':''}>Eliminar</button>
@@ -889,7 +955,8 @@ function editModal(){
           </button>`;
         }).join('')}
       </div>
-      <div class="t-total" style="margin-top:14px"><span class="k">Total</span><span class="v">${money(r.total)}</span></div>
+      <div class="t-total" style="margin-top:14px"><span class="k">Total facturado</span><span class="v">${money(r.total)}</span></div>
+      <div class="t-row" style="margin-top:6px"><span class="k">Ganancia (${r.profitPct}%)</span><span class="v" style="color:var(--accent)">${money(r.earned)}</span></div>
       <div class="modal-actions">
         <button onclick="App.closeEdit()">Cancelar</button>
         <button class="primary" onclick="App.saveEdit()">Guardar cambios</button>
@@ -913,10 +980,12 @@ const App = {
   saveRegistro(){
     const f = S.form;
     const total = f.procIds.reduce((s,pid)=>s+rateFor(f.centerId,pid,f.type),0);
+    const profitPct = profitPctFor(f.centerId, f.type);
+    const earned = Math.round(total * profitPct / 100);
     regCounter++;
     const id = 'r'+regCounter;
     const date = new Date().toISOString().slice(0,10);
-    const reg = {id, centerId:f.centerId, type:f.type, procIds:[...f.procIds], total, date, deleted:false};
+    const reg = {id, centerId:f.centerId, type:f.type, procIds:[...f.procIds], total, profitPct, earned, date, deleted:false};
     DATA.registrations.push(reg);
     DATA.audit.push({ts: date+' '+new Date().toTimeString().slice(0,5), action:'creado', desc:`Registro ${id} — ${centerName(f.centerId)}`});
     S.ticket = reg;
@@ -942,21 +1011,42 @@ const App = {
     const name = document.getElementById('new-center-name').value.trim();
     if(!name) return;
     const id = 'c'+(DATA.centers.length+1);
-    DATA.centers.push({id, name, active:true});
+    DATA.centers.push({id, name, active:true,
+      billing:{rep:'', street:'', city:'', cp:'', cif:''},
+      profitType:'general', profitGeneral:0, profitAdulto:0, profitNino:0});
     DATA.procedures.forEach(p=>{
       if(p.diff){ DATA.rates[id+'_'+p.id+'_adulto']=0; DATA.rates[id+'_'+p.id+'_nino']=0; }
       else { DATA.rates[id+'_'+p.id+'_unico']=0; }
     });
+    DATA.audit.push({ts:nowTs(), action:'creado', desc:`Centro creado: ${name}`});
     S.addCenterOpen = false; render();
   },
   openEditCenter(id){ S.editCenterId = id; render(); },
   cancelEditCenter(){ S.editCenterId = null; render(); },
+  setEditCenterProfitType(id, type){
+    const c = DATA.centers.find(x=>x.id===id);
+    c.profitType = type;
+    render();
+  },
   saveEditCenter(id){
+    const c = DATA.centers.find(x=>x.id===id);
     const name = document.getElementById('edit-center-name-'+id).value.trim();
     if(!name) return;
-    const c = DATA.centers.find(x=>x.id===id);
     c.name = name;
-    DATA.audit.push({ts:nowTs(), action:'editado', desc:`Centro actualizado: ${name}`});
+    c.billing = {
+      rep: document.getElementById('edit-center-rep-'+id).value.trim(),
+      street: document.getElementById('edit-center-street-'+id).value.trim(),
+      city: document.getElementById('edit-center-city-'+id).value.trim(),
+      cp: document.getElementById('edit-center-cp-'+id).value.trim(),
+      cif: document.getElementById('edit-center-cif-'+id).value.trim(),
+    };
+    if(c.profitType==='general'){
+      c.profitGeneral = parseFloat(document.getElementById('edit-center-pg-'+id).value)||0;
+    } else {
+      c.profitAdulto = parseFloat(document.getElementById('edit-center-pa-'+id).value)||0;
+      c.profitNino = parseFloat(document.getElementById('edit-center-pn-'+id).value)||0;
+    }
+    DATA.audit.push({ts:nowTs(), action:'editado', desc:`Centro actualizado: ${name} (${profitLabel(c)})`});
     S.editCenterId = null; render();
   },
 
@@ -1030,6 +1120,8 @@ const App = {
     const r = DATA.registrations.find(x=>x.id===S.editReg);
     r.type = t;
     r.total = r.procIds.reduce((s,pid)=>s+rateFor(r.centerId,pid,r.type),0);
+    r.profitPct = profitPctFor(r.centerId, r.type);
+    r.earned = Math.round(r.total * r.profitPct / 100);
     render();
   },
   editToggleProc(pid){
@@ -1037,6 +1129,8 @@ const App = {
     const i = r.procIds.indexOf(pid);
     if(i>-1) r.procIds.splice(i,1); else r.procIds.push(pid);
     r.total = r.procIds.reduce((s,id)=>s+rateFor(r.centerId,id,r.type),0);
+    r.profitPct = profitPctFor(r.centerId, r.type);
+    r.earned = Math.round(r.total * r.profitPct / 100);
     render();
   },
   saveEdit(){
